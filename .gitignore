@@ -8,6 +8,13 @@ obj/
 # Local cache/temp
 .tmp/
 
+# Build artifacts
+build-verify/
+build-verify-accounting/
+
+# Local config
+appsettings.Development.json
+
 # User-specific
 *.user
 *.suo
