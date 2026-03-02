@@ -1,0 +1,18 @@
+# Build outputs
+bin/
+obj/
+
+# Visual Studio
+.vs/
+
+# Local cache/temp
+.tmp/
+
+# User-specific
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log

@@ -1,0 +1,117 @@
+@host = http://localhost:8017
+@token = REPLACE_WITH_BEARER_TOKEN
+@from = 2026-01-01
+@to = 2026-12-31
+
+### 1) Login and copy accessToken into @token
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@company.com",
+  "password": "Admin@123"
+}
+
+### 2) List ledger accounts (use account ids in all create APIs)
+GET {{host}}/api/v1/gl/accounts
+Authorization: Bearer {{token}}
+
+### 3) AR invoice draft (Purpose: create customer invoice draft)
+POST {{host}}/api/v1/ar/invoices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "invoiceDate": "2026-02-15",
+  "customerName": "ABC Retail",
+  "receivableAccountId": 3,
+  "revenueAccountId": 7,
+  "taxAccountId": 5,
+  "subTotal": 10000,
+  "taxTotal": 1800,
+  "narration": "Sales invoice draft"
+}
+
+### 4) AR invoice post (Purpose: generate posted voucher for receivable/revenue)
+POST {{host}}/api/v1/ar/invoices/1/post
+Authorization: Bearer {{token}}
+
+### 5) AP invoice draft (Purpose: create vendor bill draft)
+POST {{host}}/api/v1/ap/invoices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "invoiceDate": "2026-02-15",
+  "vendorName": "XYZ Supplies",
+  "payableAccountId": 4,
+  "expenseAccountId": 8,
+  "taxAccountId": 6,
+  "subTotal": 5000,
+  "taxTotal": 900,
+  "narration": "Purchase invoice draft"
+}
+
+### 6) AP invoice post (Purpose: generate posted voucher for expense/payable)
+POST {{host}}/api/v1/ap/invoices/1/post
+Authorization: Bearer {{token}}
+
+### 7) Payment draft (Purpose: draft vendor payment or customer receipt)
+POST {{host}}/api/v1/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "paymentDate": "2026-02-15",
+  "partyType": "Vendor",
+  "partyName": "XYZ Supplies",
+  "paymentType": "Payment",
+  "offsetAccountId": 4,
+  "cashBankAccountId": 2,
+  "amount": 1500,
+  "narration": "Vendor payment draft"
+}
+
+### 8) Payment post (Purpose: create voucher for payment entry)
+POST {{host}}/api/v1/payments/1/post
+Authorization: Bearer {{token}}
+
+### 9) Journal draft (Purpose: manual debit/credit journal entry)
+POST {{host}}/api/v1/journals
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "journalDate": "2026-02-15",
+  "narration": "Manual adjustment entry",
+  "lines": [
+    {
+      "accountId": 8,
+      "debitAmount": 1000,
+      "creditAmount": 0,
+      "lineNarration": "Adjustment expense"
+    },
+    {
+      "accountId": 2,
+      "debitAmount": 0,
+      "creditAmount": 1000,
+      "lineNarration": "Adjustment bank"
+    }
+  ]
+}
+
+### 10) Journal post (Purpose: post balanced journal as voucher)
+POST {{host}}/api/v1/journals/1/post
+Authorization: Bearer {{token}}
+
+### 11) Voucher detail (Purpose: verify debit/credit lines for posting)
+GET {{host}}/api/v1/vouchers/1
+Authorization: Bearer {{token}}
+
+### 12) Trial balance (Purpose: period-wise debit/credit summary by account)
+GET {{host}}/api/v1/gl/trial-balance?from={{from}}&to={{to}}
+Authorization: Bearer {{token}}
+
+### 13) Ledger statement (Purpose: account transaction statement)
+GET {{host}}/api/v1/gl/ledger/2?from={{from}}&to={{to}}
+Authorization: Bearer {{token}}
