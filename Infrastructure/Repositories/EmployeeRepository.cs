@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.Data.SqlClient;
 using MyWebApi.Application.Contracts;
 using MyWebApi.Domain.Models;
@@ -58,11 +59,11 @@ public sealed class EmployeeRepository(IDbConnectionFactory connectionFactory) :
         return MapEmployee(reader);
     }
 
-  public async Task<int> CreateAsync(
-    EmployeeCreateRequest request,
-    CancellationToken cancellationToken)
-{
-    const string sql = """
+    public async Task<int> CreateAsync(
+      EmployeeCreateRequest request,
+      CancellationToken cancellationToken)
+    {
+        const string sql = """
         BEGIN TRAN;
 
         INSERT INTO dbo.Employees
@@ -82,34 +83,34 @@ public sealed class EmployeeRepository(IDbConnectionFactory connectionFactory) :
         SELECT @EmployeeId;
         """;
 
-    // Default user code example: EMP001
-    var userCode = "EMP" + request.EmployeeCode;
+        // Default user code example: EMP001
+        var userCode = "EMP" + request.EmployeeCode;
 
-    var passwordHash =
-        BCrypt.Net.BCrypt.HashPassword(request.Password);
+        var passwordHash =
+            BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-    await using var connection = connectionFactory.CreateConnection();
-    await connection.OpenAsync(cancellationToken);
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
 
-    await using var command = new SqlCommand(sql, connection);
+        await using var command = new SqlCommand(sql, connection);
 
-    command.Parameters.AddWithValue("@EmployeeCode", request.EmployeeCode.Trim());
-    command.Parameters.AddWithValue("@FullName", request.FullName.Trim());
-    command.Parameters.AddWithValue("@Email", request.Email.Trim());
-    command.Parameters.AddWithValue("@DepartmentCode", request.DepartmentCode.Trim());
-    command.Parameters.AddWithValue("@JoiningDate",
-        request.JoiningDate.ToDateTime(TimeOnly.MinValue));
+        command.Parameters.AddWithValue("@EmployeeCode", request.EmployeeCode.Trim());
+        command.Parameters.AddWithValue("@FullName", request.FullName.Trim());
+        command.Parameters.AddWithValue("@Email", request.Email.Trim());
+        command.Parameters.AddWithValue("@DepartmentCode", request.DepartmentCode.Trim());
+        command.Parameters.AddWithValue("@JoiningDate",
+            request.JoiningDate.ToDateTime(TimeOnly.MinValue));
 
-    command.Parameters.AddWithValue("@UserCode", userCode);
-    command.Parameters.AddWithValue("@PasswordHash", passwordHash);
+        command.Parameters.AddWithValue("@UserCode", userCode);
+        command.Parameters.AddWithValue("@PasswordHash", passwordHash);
 
-    var createdId = (int?)await command.ExecuteScalarAsync(cancellationToken);
+        var createdId = (int?)await command.ExecuteScalarAsync(cancellationToken);
 
-    if (createdId is null or <= 0)
-        throw new InvalidOperationException("Failed to create employee.");
+        if (createdId is null or <= 0)
+            throw new InvalidOperationException("Failed to create employee.");
 
-    return createdId.Value;
-}
+        return createdId.Value;
+    }
     public async Task<bool> UpdateAsync(int id, EmployeeUpdateRequest request, CancellationToken cancellationToken)
     {
         const string sql = """
@@ -183,4 +184,54 @@ public sealed class EmployeeRepository(IDbConnectionFactory connectionFactory) :
             JoiningDate: DateOnly.FromDateTime(reader.GetDateTime(5)),
             IsActive: reader.GetBoolean(6)
         );
+
+ public async Task<(int TotalCount, IReadOnlyList<User> Data)> GetUsersAsync(
+    int page,
+    int pageSize,
+    string search,
+    CancellationToken cancellationToken)
+{
+    var users = new List<User>();
+    int totalCount = 0;
+
+    await using var connection = connectionFactory.CreateConnection();
+    await connection.OpenAsync(cancellationToken);
+
+    await using var command = new SqlCommand("sp_GetUsers", connection);
+    command.CommandType = CommandType.StoredProcedure;
+
+    command.Parameters.AddWithValue("@Page", page);
+    command.Parameters.AddWithValue("@PageSize", pageSize);
+    command.Parameters.AddWithValue("@Search", (object?)search ?? DBNull.Value);
+
+    await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+    // 🔹 FIRST RESULT → TOTAL COUNT
+    if (await reader.ReadAsync(cancellationToken))
+    {
+        totalCount = reader.GetInt32(0);
+    }
+
+    // 🔹 MOVE TO NEXT RESULT SET
+    await reader.NextResultAsync(cancellationToken);
+
+    // 🔹 SECOND RESULT → USERS DATA
+    while (await reader.ReadAsync(cancellationToken))
+    {
+        users.Add(new User
+        {
+            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+            UserCode = reader["UserCode"]?.ToString(),
+            UserName = reader["UserName"]?.ToString(),
+            Email = reader["Email"]?.ToString(),
+            IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+            CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
+        });
+    }
+
+    return (totalCount, users);
+}
+    
+
+   
 }

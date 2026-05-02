@@ -91,4 +91,13 @@ public sealed class EmployeeService(IEmployeeRepository repository) : IEmployeeS
             throw new ArgumentException("Full name, email, and department code are required.");
         }
     }
+
+    public async Task<(int TotalCount, IReadOnlyList<User> Data)> GetUsersAsync(
+    int page,
+    int pageSize,
+    string search,
+    CancellationToken cancellationToken)
+    {
+        return await repository.GetUsersAsync(page, pageSize, search, cancellationToken);
+    }
 }

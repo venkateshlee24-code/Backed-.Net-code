@@ -26,6 +26,7 @@ public sealed class EmployeesController(IEmployeeService employeeService) : Cont
         var employee = await employeeService.GetByIdAsync(id, cancellationToken);
         return employee is null ? NotFound() : Ok(employee);
     }
+    
     [AllowAnonymous]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] EmployeeCreateRequest request, CancellationToken cancellationToken)
@@ -68,5 +69,24 @@ public sealed class EmployeesController(IEmployeeService employeeService) : Cont
     {
         var deactivated = await employeeService.DeactivateAsync(id, cancellationToken);
         return deactivated ? NoContent() : NotFound();
+    }
+
+    [AllowAnonymous]
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers(
+        int page = 1,
+        int pageSize = 10,
+        string search = null,
+        CancellationToken ct = default)
+    {
+        var result = await employeeService.GetUsersAsync(page, pageSize, search, ct);
+
+        return Ok(new
+        {
+            page,
+            pageSize,
+            totalCount = result.TotalCount,
+            data = result.Data
+        });
     }
 }

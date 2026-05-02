@@ -27,7 +27,7 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy
-                .WithOrigins("http://localhost:8080") // Angular URL
+                .WithOrigins("http://localhost:8000") // Angular URL
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
